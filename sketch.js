@@ -9,8 +9,8 @@ const g = cv.getContext('2d');
 const vid = document.getElementById('vid');
 
 const PICKS = ['rock', 'paper', 'scissors'];
-const EM = { rock: '✊', paper: '🖐', scissors: '✌️', thumbs_up: '👍', thumbs_down: '👎' };
-const LB = { rock: '石頭', paper: '布', scissors: '剪刀', thumbs_up: '讚', thumbs_down: '結束' };
+const EM = { rock: '✊', paper: '🖐', scissors: '✌️', thumbs_up: '👍', thumbs_down: '👎', pointing: '☝️' };
+const LB = { rock: '石頭', paper: '布', scissors: '剪刀', thumbs_up: '讚', thumbs_down: '結束', pointing: '繼續' };
 const BEATS = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
 const PAL = ['#FF6B6B', '#FFE66D', '#4ECDC4', '#C3A6FF', '#FF9F43', '#56CCF2', '#FD79A8', '#A3F7BF'];
 const SKEL = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12],
@@ -73,6 +73,9 @@ function classify(l) {
     // 偵測比爛 (Thumbs Down): 拇指尖端明顯低於其餘關節
     const thumbDown = l[4].y > l[3].y && l[4].y > l[2].y && l[4].y > l[5].y;
     if (thumbDown && n === 0) return 'thumbs_down';
+
+    // 偵測食指 (Pointing): 只有食指伸出
+    if (n === 1 && ext[0]) return 'pointing';
 
     if (n === 0) return 'rock';
     if (n >= 3) return 'paper';
@@ -393,7 +396,7 @@ function dMenu() {
     g.font = '14px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = 'rgba(255,255,255,.5)';
     g.fillText(`✅ ${score.w}勝  ❌ ${score.l}敗  🤝 ${score.d}平`, W / 2, H / 2 - 33); g.restore();
-    smT('點擊按鈕，或比出 👍 / 👎 選擇', W / 2, H / 2 + 6, 14);
+    smT('點擊按鈕，或比出 ☝️ / 👎 選擇', W / 2, H / 2 + 6, 14);
     const bw = 132, bh = 52, by = H / 2 + 24;
     btn('🏠 結束', W / 2 - bw - 8, by, bw, bh, '#CC2200'); 
     btn('🎮 繼續', W / 2 + 8, by, bw, bh, '#00AA44');      
@@ -401,16 +404,16 @@ function dMenu() {
     g.fillStyle = 'rgba(255,255,255,.06)'; rr(20, H / 2 + 90, W - 40, 32, 8); g.fill();
     g.font = '13px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = 'rgba(255,255,255,.45)';
-    g.fillText('💡 比出 👍 🎮 繼續  ·  比出 👎 🏠 結束', W / 2, H / 2 + 106); g.restore();
+    g.fillText('💡 比出 ☝️ 🎮 繼續  ·  比出 👎 🏠 結束', W / 2, H / 2 + 106); g.restore();
 
     // 繪製選單手勢進度條
-    if (st === 'menu' && (stable === 'thumbs_up' || stable === 'thumbs_down')) {
+    if (st === 'menu' && (stable === 'pointing' || stable === 'thumbs_down')) {
         const pct = menuHoldT ? Math.min(1, (Date.now() - menuHoldT) / HOLD) : 0;
-        const isUp = stable === 'thumbs_up';
-        const col = isUp ? '#00FF88' : '#FF4444';
+        const isPoint = stable === 'pointing';
+        const col = isPoint ? '#00FF88' : '#FF4444';
         g.fillStyle = 'rgba(255,255,255,0.1)'; rr(W / 2 - 100, H / 2 + 132, 200, 8, 4); g.fill();
         g.fillStyle = col; rr(W / 2 - 100, H / 2 + 132, 200 * pct, 8, 4); g.fill();
-        const txt = isUp ? '🎮 準備繼續...' : '🏠 準備結束...';
+        const txt = isPoint ? '🎮 準備繼續...' : '🏠 準備結束...';
         boldT(txt, W / 2, H / 2 + 158, 20, col, '#000');
     }
 }
@@ -430,10 +433,10 @@ function update() {
 
     // 選單狀態的邏輯處理
     if (st === 'menu') {
-        if (stable === 'thumbs_up' || stable === 'thumbs_down') {
+        if (stable === 'pointing' || stable === 'thumbs_down') {
             if (!menuHoldT) menuHoldT = now;
             if (now - menuHoldT >= HOLD) {
-                if (stable === 'thumbs_up') startGame();
+                if (stable === 'pointing') startGame();
                 else enter('ended');
                 menuHoldT = null;
             }
@@ -452,8 +455,8 @@ function update() {
             if (now - holdT >= HOLD) {
                 enter('countdown');
             }
-        } else if (stable === 'thumbs_up' || stable === 'thumbs_down' || !lm) {
-            // 只有在手消失或是變成「比讚」時才重置，避免閃爍中斷計時
+        } else if (stable === 'pointing' || stable === 'thumbs_down' || !lm) {
+            // 只有在手消失或是變成「功能手勢」時才重置，避免閃爍中斷計時
             holdT = null;
             pG = null;
         }
